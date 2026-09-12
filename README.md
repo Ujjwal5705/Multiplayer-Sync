@@ -5,6 +5,9 @@ hand-rolled protocol, client-side interpolation, and an honest, minimal
 server. No Socket.IO, Yjs, PartyKit, Liveblocks, or any other sync
 library — see `ARCHITECTURE.md` for the full design writeup.
 
+**Live demo:** https://multiplayer-sync-1.onrender.com
+**Server health check:** https://multiplayer-sync.onrender.com/health
+
 ## Setup
 
 Requires Node.js 18+.
