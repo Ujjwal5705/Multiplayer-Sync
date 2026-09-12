@@ -26,8 +26,14 @@ import type {
 } from "./protocol.js";
 
 const COLOR_PALETTE = [
-  "#ef4444", "#f97316", "#eab308", "#22c55e",
-  "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899",
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
 ];
 
 interface Participant {
@@ -69,7 +75,11 @@ export class Room {
    *  Join strategy: full-state snapshot (not replay of history) - a new
    *  client gets exactly where everyone currently is, in one message,
    *  rather than waiting for each peer's next tick. See ARCHITECTURE.md. */
-  join(clientId: ClientId, name: string | undefined, socket: WebSocket): ParticipantInfo[] {
+  join(
+    clientId: ClientId,
+    name: string | undefined,
+    socket: WebSocket,
+  ): ParticipantInfo[] {
     const existing = this.participants.get(clientId);
     if (existing) {
       // Reconnect with the same clientId: replace the socket, keep position,
@@ -114,7 +124,13 @@ export class Room {
     const out: ParticipantInfo[] = [];
     for (const p of this.participants.values()) {
       if (p.clientId === excludeClientId) continue;
-      out.push({ clientId: p.clientId, name: p.name, color: p.color, x: p.x, y: p.y });
+      out.push({
+        clientId: p.clientId,
+        name: p.name,
+        color: p.color,
+        x: p.x,
+        y: p.y,
+      });
     }
     return out;
   }
@@ -203,6 +219,12 @@ export class Room {
 
 export class RoomRegistry {
   private rooms = new Map<string, Room>();
+
+  /** Look up a room without creating one - used on disconnect, where we
+   *  never want to accidentally resurrect an already-cleaned-up room. */
+  get(roomId: string): Room | undefined {
+    return this.rooms.get(roomId);
+  }
 
   getOrCreate(roomId: string): Room {
     let room = this.rooms.get(roomId);
