@@ -98,6 +98,12 @@ export interface Room {
 }
 
 function defaultWsUrl(): string {
+  // Explicit override for when client and server are deployed to different
+  // hosts (the common case: a static client host + a separate WS-capable
+  // server host). Falls back to same-origin `/ws`, which is what a local
+  // Vite dev proxy (see vite.config.ts) or a same-host production setup use.
+  const override = import.meta.env.VITE_WS_URL as string | undefined;
+  if (override) return override;
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${proto}//${window.location.host}/ws`;
 }
