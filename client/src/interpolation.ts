@@ -35,7 +35,7 @@ export interface PositionSample {
   seq: number;
 }
 
-export const RENDER_DELAY_MS = 100;
+export const RENDER_DELAY_MS = 10;
 const MAX_EXTRAPOLATION_MS = 250;
 const MAX_BUFFER_SAMPLES = 8;
 

@@ -93,7 +93,9 @@ export interface Room {
   onWelcome(cb: WelcomeHandler): () => void;
   onStatusChange(cb: StatusHandler): () => void;
   onLatency(cb: LatencyHandler): () => void;
-  /** Intentional leave - no reconnect attempts afterward. */
+
+  setSimulatedNetwork(delayMs: number, jitterMs: number): void;
+
   close(): void;
 }
 
@@ -145,37 +147,15 @@ export function createRoom(options: RoomOptions): Room {
     }
   }
 
-  function connect(): void {
-    emitStatus(reconnectAttempt === 0 ? "connecting" : "reconnecting");
-    ws = new WebSocket(url);
+  // Debug-only network simulator: lets the demo UI (or a live interview)
+  // reliably show the interpolator handling lag/jitter without depending on
+  // browser DevTools throttling quirks (which only affect NEW connections
+  // and behave inconsistently across browsers). Zero by default = no effect.
+  let simulatedDelayMs = 0;
+  let simulatedJitterMs = 0;
 
-    ws.onopen = () => {
-      reconnectAttempt = 0;
-      sendRaw({
-        type: "join",
-        roomId: options.roomId,
-        clientId: options.clientId,
-        name: options.name,
-      });
-      emitStatus("open");
-
-      // App-level latency probe, independent of the WS protocol's own
-      // ping/pong frames (browsers don't expose those to JS anyway).
-      latencyPingInterval = setInterval(() => {
-        sendRaw({ type: "ping", t: Date.now() });
-      }, 4000);
-    };
-
-    ws.onmessage = (event) => {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(event.data);
-      } catch {
-        return; // malformed JSON from the network: drop, don't crash
-      }
-      const msg: ServerMessage | null = parseServerMessage(parsed);
-      if (!msg) return; // unknown/invalid shape: drop, don't crash
-
+  function deliver(msg: ServerMessage): void {
+    const run = () => {
       switch (msg.type) {
         case "welcome":
           for (const cb of welcomeHandlers)
@@ -227,6 +207,49 @@ export function createRoom(options: RoomOptions): Room {
           console.warn("[room] server error:", msg.reason);
           break;
       }
+    };
+
+    if (simulatedDelayMs <= 0 && simulatedJitterMs <= 0) {
+      run();
+      return;
+    }
+    const jitter =
+      simulatedJitterMs > 0 ? (Math.random() * 2 - 1) * simulatedJitterMs : 0;
+    const delay = Math.max(0, simulatedDelayMs + jitter);
+    setTimeout(run, delay);
+  }
+
+  function connect(): void {
+    emitStatus(reconnectAttempt === 0 ? "connecting" : "reconnecting");
+    ws = new WebSocket(url);
+
+    ws.onopen = () => {
+      reconnectAttempt = 0;
+      sendRaw({
+        type: "join",
+        roomId: options.roomId,
+        clientId: options.clientId,
+        name: options.name,
+      });
+      emitStatus("open");
+
+      // App-level latency probe, independent of the WS protocol's own
+      // ping/pong frames (browsers don't expose those to JS anyway).
+      latencyPingInterval = setInterval(() => {
+        sendRaw({ type: "ping", t: Date.now() });
+      }, 4000);
+    };
+
+    ws.onmessage = (event) => {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+      const msg: ServerMessage | null = parseServerMessage(parsed);
+      if (!msg) return;
+      deliver(msg);
     };
 
     ws.onclose = () => {
@@ -320,6 +343,11 @@ export function createRoom(options: RoomOptions): Room {
     onLatency(cb) {
       latencyHandlers.add(cb);
       return () => latencyHandlers.delete(cb);
+    },
+
+    setSimulatedNetwork(delayMs, jitterMs) {
+      simulatedDelayMs = Math.max(0, delayMs);
+      simulatedJitterMs = Math.max(0, jitterMs);
     },
 
     close() {

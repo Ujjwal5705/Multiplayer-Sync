@@ -75,6 +75,7 @@ export default function App() {
   >(new Map());
   const [pingMs, setPingMs] = useState<number | null>(null);
   const [selectedEmoji, setSelectedEmoji] = useState(EMOJI_OPTIONS[0]);
+  const [simulatedLagMs, setSimulatedLagMs] = useState(0);
 
   const roomRef = useRef<Room | null>(null);
   const selfIdRef = useRef<string | null>(null);
@@ -108,6 +109,11 @@ export default function App() {
     setParticipants(new Map());
     setSelfId(null);
     setJoined(false);
+  }
+
+  function handleLagChange(ms: number): void {
+    setSimulatedLagMs(ms);
+    roomRef.current?.setSimulatedNetwork(ms, ms / 3);
   }
 
   // Wire up connection events: presence + incoming remote actions.
@@ -297,6 +303,20 @@ export default function App() {
       </div>
 
       <div className="dock">
+        <div className="dock-section lag-sim">
+          <label htmlFor="lag-slider" className="lag-label">
+            Simulate lag: {simulatedLagMs > 0 ? `${simulatedLagMs}ms` : "off"}
+          </label>
+          <input
+            id="lag-slider"
+            type="range"
+            min={0}
+            max={500}
+            step={25}
+            value={simulatedLagMs}
+            onChange={(e) => handleLagChange(Number(e.target.value))}
+          />
+        </div>
         <div className="dock-section room-info">
           <span className={`status-pill status-${status}`}>
             {statusLabel(status)}

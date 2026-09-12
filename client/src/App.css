@@ -285,3 +285,18 @@ body {
     transition: none !important;
   }
 }
+
+.lag-sim {
+  gap: 8px;
+}
+
+.lag-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.lag-sim input[type="range"] {
+  width: 110px;
+  accent-color: var(--warn-amber);
+}
