@@ -32,11 +32,18 @@ const CLIENT_ID_KEY = "mss-client-id";
  *  participant, while reloading THIS tab keeps the same identity and lets
  *  the server treat it as a resume rather than a new join. */
 function getOrCreateClientId(): string {
-  let id = sessionStorage.getItem(CLIENT_ID_KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    sessionStorage.setItem(CLIENT_ID_KEY, id);
+  const navEntry = performance.getEntriesByType("navigation")[0] as
+    | PerformanceNavigationTiming
+    | undefined;
+  const isRealReload = navEntry?.type === "reload";
+
+  if (isRealReload) {
+    const existing = sessionStorage.getItem(CLIENT_ID_KEY);
+    if (existing) return existing;
   }
+
+  const id = crypto.randomUUID();
+  sessionStorage.setItem(CLIENT_ID_KEY, id);
   return id;
 }
 
