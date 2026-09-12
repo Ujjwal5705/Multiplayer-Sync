@@ -53,6 +53,10 @@ function handleJoin(
 
   socketMeta.set(ws, { roomId, clientId, isAlive: true });
 
+  console.log(
+    `[join] room="${roomId}" client="${clientId}" name="${name ?? ""}" -> room now has ${room.size} participant(s)`,
+  );
+
   send(ws, {
     type: "welcome",
     selfId: clientId,
@@ -71,6 +75,9 @@ function handleClose(ws: WebSocket): void {
   if (room) {
     room.leave(meta.clientId);
     registry.cleanupIfEmpty(meta.roomId);
+    console.log(
+      `[leave] room="${meta.roomId}" client="${meta.clientId}" -> room now has ${room.size} participant(s)`,
+    );
   }
 }
 
